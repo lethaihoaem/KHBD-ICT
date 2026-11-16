@@ -174,8 +174,87 @@
       ctx.stroke();
     }
 
-    // Vẽ bàn tay đang đẩy thanh gỗ
-    function drawHand() {
+   function drawHand() {
+  if (!moving || elapsed > 0.65) return;
+
+  const x = blockX - 12;
+  const y = tableY - blockH + 12;
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+
+  // Màu sắc
+  const skin = "#F2C6B1";
+  const outline = "#C8947E";
+
+  // Cánh tay
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  ctx.moveTo(-100, -95);
+  ctx.lineTo(-70, -108);
+  ctx.lineTo(-29, -35);
+  ctx.lineTo(-53, -20);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Lòng bàn tay
+  ctx.beginPath();
+  ctx.moveTo(-65, -35);
+  ctx.quadraticCurveTo(-50, -48, -38, -35);
+  ctx.lineTo(-13, -13);
+  ctx.quadraticCurveTo(-5, -4, -15, 5);
+  ctx.lineTo(-45, 8);
+  ctx.quadraticCurveTo(-63, 5, -70, -12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Các ngón tay
+  const fingers = [
+    [-60, -34, -77, -54, -87, -69],
+    [-49, -38, -64, -62, -71, -77],
+    [-37, -31, -48, -55, -53, -69],
+    [-27, -23, -34, -43, -38, -55]
+  ];
+
+  fingers.forEach(f => {
+    ctx.beginPath();
+    ctx.moveTo(f[0], f[1]);
+    ctx.quadraticCurveTo(
+      f[2], f[3],
+      f[4], f[5]
+    );
+    ctx.lineWidth = 9;
+    ctx.strokeStyle = skin;
+    ctx.stroke();
+
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = outline;
+    ctx.stroke();
+  });
+
+  // Ngón cái
+  ctx.beginPath();
+  ctx.moveTo(-15, -12);
+  ctx.quadraticCurveTo(0, -24, -8, -34);
+  ctx.quadraticCurveTo(-16, -43, -26, -35);
+  ctx.strokeStyle = skin;
+  ctx.lineWidth = 12;
+  ctx.stroke();
+
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.restore();
+}
       if (!moving || elapsed > 0.5) return;
 
       const hx = blockX - 12;
@@ -222,69 +301,96 @@
     }
 
     // Tạo bề mặt lồi lõm trong kính lúp
-    function drawRoughSurface(cx, cy, r) {
-      ctx.save();
+    function drawRoughSurface(cx, cy, r, displacement) {
+  ctx.save();
 
+  // Giới hạn hình ảnh bên trong kính lúp
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 3, 0, Math.PI * 2);
+  ctx.clip();
+
+  // Độ dịch chuyển của bề mặt gỗ
+  // Gỗ di chuyển sang phải, mặt bàn đứng yên
+  const offset = displacement * 2.2;
+
+  // Nền phía trên: thanh gỗ
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(cx-r, cy-r, 2*r, r+20);
+
+  // Nền phía dưới: mặt bàn
+  ctx.fillStyle = "#A96F49";
+  ctx.fillRect(cx-r, cy, 2*r, r);
+
+  // Tạo đường lồi lõm phía dưới thanh gỗ
+  ctx.beginPath();
+  ctx.moveTo(cx-r, cy);
+
+  for (let x = -r; x <= r; x += 2) {
+    const y =
+      Math.sin((x - offset) * 0.18) * 5 +
+      Math.sin((x - offset) * 0.43) * 2.5 +
+      Math.cos((x - offset) * 0.09) * 3;
+
+    ctx.lineTo(cx+x, cy+y);
+  }
+
+  ctx.lineTo(cx+r, cy-r);
+  ctx.lineTo(cx-r, cy-r);
+  ctx.closePath();
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fill();
+
+  // Đường lồi lõm phía trên mặt bàn
+  // Mặt bàn đứng yên, không phụ thuộc displacement
+  ctx.beginPath();
+  ctx.moveTo(cx-r, cy+12);
+
+  for (let x = -r; x <= r; x += 2) {
+    const y =
+      cy + 12 +
+      Math.sin(x * 0.18 + 1) * 5 +
+      Math.sin(x * 0.43 + 2) * 2.5 +
+      Math.cos(x * 0.09) * 3;
+      
+    ctx.lineTo(cx+x, y);
+  }
+
+  ctx.lineTo(cx+r, cy+r);
+  ctx.lineTo(cx-r, cy+r);
+  ctx.closePath();
+
+  ctx.fillStyle = "#A96F49";
+  ctx.fill();
+
+  // Các điểm tiếp xúc
+  ctx.fillStyle = "#875333";
+
+  for (let x = -r; x <= r; x += 17) {
+    const topY =
+      Math.sin((x-offset)*0.18)*5 +
+      Math.sin((x-offset)*0.43)*2.5;
+
+    const bottomY =
+      12 +
+      Math.sin(x*0.18+1)*5 +
+      Math.sin(x*0.43+2)*2.5;
+
+    if (Math.abs(bottomY-topY) < 20) {
       ctx.beginPath();
-      ctx.arc(cx, cy, r - 3, 0, Math.PI * 2);
-      ctx.clip();
-
-      // Phần gỗ phía trên
-      ctx.fillStyle = "#e9c4a8";
-      ctx.fillRect(cx - r, cy - r, 2 * r, r + 10);
-
-      // Phần mặt bàn phía dưới
-      ctx.fillStyle = "#a96c45";
-      ctx.fillRect(cx - r, cy, 2 * r, r);
-
-      // Các điểm lồi lõm ở bề mặt thanh gỗ
-      ctx.fillStyle = "#c18d68";
-      ctx.beginPath();
-      ctx.moveTo(cx - r, cy - 5);
-
-      for (let x = -r; x <= r; x += 5) {
-        const y = cy - 7
-          + Math.sin(x * 0.19) * 5
-          + Math.sin(x * 0.43) * 3;
-        ctx.lineTo(cx + x, y);
-      }
-
-      ctx.lineTo(cx + r, cy + 4);
-      ctx.lineTo(cx - r, cy + 4);
-      ctx.closePath();
+      ctx.arc(
+        cx+x,
+        cy+(topY+bottomY)/2,
+        2.5,
+        0,
+        Math.PI*2
+      );
       ctx.fill();
-
-      // Các điểm lồi lõm của mặt bàn
-      ctx.fillStyle = "#885333";
-      ctx.beginPath();
-      ctx.moveTo(cx - r, cy + 9);
-
-      for (let x = -r; x <= r; x += 5) {
-        const y = cy + 12
-          + Math.sin(x * 0.22 + 1) * 6
-          + Math.cos(x * 0.47) * 3;
-        ctx.lineTo(cx + x, y);
-      }
-
-      ctx.lineTo(cx + r, cy + r);
-      ctx.lineTo(cx - r, cy + r);
-      ctx.closePath();
-      ctx.fill();
-
-      // Làm nổi bật các điểm tiếp xúc
-      ctx.fillStyle = "#70452f";
-      for (let i = -75; i <= 75; i += 20) {
-        const x = cx + i;
-        const y = cy + Math.sin(i * 0.2) * 4 + 3;
-
-        ctx.beginPath();
-        ctx.arc(x, y, 3.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.restore();
     }
+  }
 
+  ctx.restore();
+}
     // Vẽ kính lúp
     function drawLens() {
       if (!showLens) return;
@@ -303,7 +409,12 @@
       ctx.stroke();
 
       // Vùng phóng đại
-      drawRoughSurface(lensX, lensY, lensR);
+      drawRoughSurface(
+  lensX,
+  lensY,
+  lensR,
+  blockX - startX
+);
 
       // Viền kính
       ctx.beginPath();
@@ -344,11 +455,11 @@
       ctx.font = "16px Arial";
       ctx.fillText("MẶT BÀN", 760, tableY + 40);
 
-      ctx.textAlign = "left";
-      ctx.font = "14px Arial";
+      ctx.textAlign = "Center";
+      ctx.font = "14px Time New Roman";
       ctx.fillStyle = "#777";
       ctx.fillText(
-        "Quan sát thông thường: bề mặt có vẻ nhẵn",
+        "Quan sát Thanh gỗ trượt trên mặt bàn",
         55, 30
       );
     }
